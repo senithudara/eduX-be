@@ -7,7 +7,7 @@ const registerStudent = async (req, res) => {
   const { name, email, nic, phoneNumber, password } = req.body;
   console.log(req.body);
   try {
-    // Check if a student with the same email already exists
+    // to check if the emial is already registered
     const existingStudent =
       await sql.query`SELECT * FROM Students WHERE email = ${email}`;
 
@@ -17,11 +17,10 @@ const registerStudent = async (req, res) => {
         .json({ error: "A student with this email is already registered." });
     }
 
-    // Hash the password before saving to the database
-    const saltRounds = 10; // Define the salt rounds
+    //password hashing
+    const saltRounds = 10;
     const hashedPassword = await bcrypt.hash(password, saltRounds);
 
-    // Insert the new student into the database
     await sql.query`
       INSERT INTO Students (name, email, password, nic, phoneNumber) 
       VALUES (${name}, ${email}, ${hashedPassword}, ${nic}, ${phoneNumber})
@@ -37,7 +36,7 @@ const loginStudent = async (req, res) => {
   const { email, password } = req.body;
 
   try {
-    // Fetch student data from the database using email
+    // retrieve all student data
     const result =
       await sql.query`SELECT * FROM Students WHERE email = ${email}`;
 
@@ -47,7 +46,7 @@ const loginStudent = async (req, res) => {
 
     const student = result.recordset[0];
 
-    // Compare the entered password with the stored hashed password
+    // to compare the entered password with the stored hashed password
     const isPasswordValid = await bcrypt.compare(password, student.password);
 
     if (!isPasswordValid) {
@@ -162,10 +161,31 @@ const getStudentById = async (req, res) => {
   }
 };
 
+const deleteStudent = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    // Check if student exists
+    const existingStudent =
+      await sql.query`SELECT * FROM Students WHERE id = ${id}`;
+    if (existingStudent.recordset.length === 0) {
+      return res.status(404).json({ message: "Student not found" });
+    }
+
+    // Delete student from the database
+    await sql.query`DELETE FROM Students WHERE id = ${id}`;
+
+    res.status(200).json({ message: "Student deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
 module.exports = {
   registerStudent,
   loginStudent,
   getStudentById,
   getStudentDetails,
   updateStudent,
+  deleteStudent,
 };
